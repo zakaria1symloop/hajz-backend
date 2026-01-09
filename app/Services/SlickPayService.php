@@ -114,6 +114,7 @@ class SlickPayService
             'phone' => $user->phone ?? '',
             'address' => 'Algeria',
             'rib' => $rib,
+            'account' => $rib,
             'title' => 'M.',
         ];
 
@@ -162,6 +163,7 @@ class SlickPayService
             'phone' => $phone,
             'address' => 'Algeria',
             'rib' => $rib,
+            'account' => $rib,
             'title' => 'M.',
         ];
 
