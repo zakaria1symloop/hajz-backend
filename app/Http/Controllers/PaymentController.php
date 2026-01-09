@@ -6,7 +6,7 @@ use App\Models\Payment;
 use App\Models\Reservation;
 use App\Models\TableReservation;
 use App\Models\CarBooking;
-use App\Services\SlickPayService;
+use App\Services\ChargilyService;
 use App\Services\WalletService;
 use App\Services\RoomAvailabilityService;
 use Illuminate\Http\Request;
@@ -15,16 +15,16 @@ use Illuminate\Support\Facades\DB;
 
 class PaymentController extends Controller
 {
-    protected $slickPayService;
+    protected $chargilyService;
     protected $walletService;
     protected $roomAvailabilityService;
 
     public function __construct(
-        SlickPayService $slickPayService,
+        ChargilyService $chargilyService,
         WalletService $walletService,
         RoomAvailabilityService $roomAvailabilityService
     ) {
-        $this->slickPayService = $slickPayService;
+        $this->chargilyService = $chargilyService;
         $this->walletService = $walletService;
         $this->roomAvailabilityService = $roomAvailabilityService;
     }
@@ -57,7 +57,7 @@ class PaymentController extends Controller
                 'amount' => $reservation->total_price,
                 'currency' => 'DZD',
                 'status' => 'pending',
-                'payment_method' => 'slickpay',
+                'payment_method' => 'chargily',
                 'description' => "Hotel Reservation #{$reservation->id}",
             ]
         );
@@ -66,14 +66,7 @@ class PaymentController extends Controller
         $paymentData = [
             'payment_id' => $payment->id,
             'amount' => $reservation->total_price,
-            'description' => "Réservation Hôtel - {$reservation->reservable->name}",
-            'items' => [
-                [
-                    'name' => "Chambre: {$reservation->room->name}",
-                    'quantity' => 1,
-                    'price' => $reservation->total_price,
-                ]
-            ],
+            'description' => "Réservation Hôtel - {$reservation->reservable->name} - Chambre: {$reservation->room->name}",
         ];
 
         // Add user or guest info
@@ -85,8 +78,8 @@ class PaymentController extends Controller
             $paymentData['guest_phone'] = $reservation->guest_phone;
         }
 
-        // Initiate payment with SlickPay
-        $result = $this->slickPayService->initiatePayment($paymentData);
+        // Initiate payment with Chargily
+        $result = $this->chargilyService->initiatePayment($paymentData);
 
         if (!$result['success']) {
             return response()->json([
@@ -95,10 +88,10 @@ class PaymentController extends Controller
             ], 400);
         }
 
-        // Update payment with SlickPay invoice ID
+        // Update payment with Chargily checkout ID
         $payment->update([
-            'slickpay_invoice_id' => $result['invoice_id'],
-            'slickpay_response' => $result['data'],
+            'chargily_checkout_id' => $result['checkout_id'],
+            'chargily_response' => $result['data'],
         ]);
 
         return response()->json([
@@ -134,7 +127,7 @@ class PaymentController extends Controller
             'amount' => $reservation->total_amount,
             'currency' => 'DZD',
             'status' => 'pending',
-            'payment_method' => 'slickpay',
+            'payment_method' => 'chargily',
             'description' => "Restaurant Reservation #{$reservation->id}",
         ]);
 
@@ -145,24 +138,8 @@ class PaymentController extends Controller
         $paymentData = [
             'payment_id' => $payment->id,
             'amount' => $reservation->total_amount,
-            'description' => "Réservation Restaurant - {$reservation->restaurant->name}",
-            'items' => [
-                [
-                    'name' => "Table: {$reservation->table->name}",
-                    'quantity' => 1,
-                    'price' => $reservation->table_total,
-                ]
-            ],
+            'description' => "Réservation Restaurant - {$reservation->restaurant->name} - Table: {$reservation->table->name}",
         ];
-
-        // Add plats to items if any
-        if ($reservation->plats_total > 0) {
-            $paymentData['items'][] = [
-                'name' => 'Plats commandés',
-                'quantity' => 1,
-                'price' => $reservation->plats_total,
-            ];
-        }
 
         // Add user or guest info
         if ($reservation->user) {
@@ -173,8 +150,8 @@ class PaymentController extends Controller
             $paymentData['guest_phone'] = $reservation->guest_phone;
         }
 
-        // Initiate payment with SlickPay
-        $result = $this->slickPayService->initiatePayment($paymentData);
+        // Initiate payment with Chargily
+        $result = $this->chargilyService->initiatePayment($paymentData);
 
         if (!$result['success']) {
             return response()->json([
@@ -183,10 +160,10 @@ class PaymentController extends Controller
             ], 400);
         }
 
-        // Update payment with SlickPay invoice ID
+        // Update payment with Chargily checkout ID
         $payment->update([
-            'slickpay_invoice_id' => $result['invoice_id'],
-            'slickpay_response' => $result['data'],
+            'chargily_checkout_id' => $result['checkout_id'],
+            'chargily_response' => $result['data'],
         ]);
 
         return response()->json([
@@ -222,7 +199,7 @@ class PaymentController extends Controller
             'amount' => $booking->total_amount,
             'currency' => 'DZD',
             'status' => 'pending',
-            'payment_method' => 'slickpay',
+            'payment_method' => 'chargily',
             'description' => "Car Rental Booking #{$booking->id}",
         ]);
 
@@ -233,14 +210,7 @@ class PaymentController extends Controller
         $paymentData = [
             'payment_id' => $payment->id,
             'amount' => $booking->total_amount,
-            'description' => "Location Voiture - {$booking->car->brand} {$booking->car->model}",
-            'items' => [
-                [
-                    'name' => "{$booking->car->brand} {$booking->car->model} - {$booking->rental_days} jours",
-                    'quantity' => $booking->rental_days,
-                    'price' => $booking->price_per_day,
-                ]
-            ],
+            'description' => "Location Voiture - {$booking->car->brand} {$booking->car->model} - {$booking->rental_days} jours",
         ];
 
         // Add user or guest info
@@ -252,8 +222,8 @@ class PaymentController extends Controller
             $paymentData['guest_phone'] = $booking->customer_phone;
         }
 
-        // Initiate payment with SlickPay
-        $result = $this->slickPayService->initiatePayment($paymentData);
+        // Initiate payment with Chargily
+        $result = $this->chargilyService->initiatePayment($paymentData);
 
         if (!$result['success']) {
             return response()->json([
@@ -262,10 +232,10 @@ class PaymentController extends Controller
             ], 400);
         }
 
-        // Update payment with SlickPay invoice ID
+        // Update payment with Chargily checkout ID
         $payment->update([
-            'slickpay_invoice_id' => $result['invoice_id'],
-            'slickpay_response' => $result['data'],
+            'chargily_checkout_id' => $result['checkout_id'],
+            'chargily_response' => $result['data'],
         ]);
 
         return response()->json([
@@ -276,11 +246,71 @@ class PaymentController extends Controller
     }
 
     /**
-     * SlickPay callback handler
+     * Chargily webhook handler
+     */
+    public function chargilyWebhook(Request $request)
+    {
+        Log::info('Chargily Webhook Received', [
+            'headers' => $request->headers->all(),
+            'body' => $request->all(),
+        ]);
+
+        // Validate webhook signature
+        $signature = $request->header('signature');
+        $payload = $request->getContent();
+
+        if ($signature && !$this->chargilyService->validateWebhookSignature($payload, $signature)) {
+            Log::warning('Chargily Webhook: Invalid signature');
+            return response()->json(['message' => 'Invalid signature'], 401);
+        }
+
+        // Process webhook
+        $webhookData = $this->chargilyService->processWebhook($request->all());
+
+        $checkoutId = $webhookData['checkout_id'];
+        $status = $webhookData['status'];
+        $metadata = $webhookData['metadata'];
+
+        // Find payment by checkout ID or metadata
+        $payment = Payment::where('chargily_checkout_id', $checkoutId)->first();
+
+        if (!$payment && isset($metadata['payment_id'])) {
+            $payment = Payment::find($metadata['payment_id']);
+        }
+
+        if (!$payment) {
+            Log::error('Chargily Webhook: Payment not found', [
+                'checkout_id' => $checkoutId,
+                'metadata' => $metadata,
+            ]);
+            return response()->json(['message' => 'Payment not found'], 404);
+        }
+
+        // Update payment based on status
+        if ($status === 'paid') {
+            $payment->update([
+                'status' => 'paid',
+                'chargily_response' => $webhookData['data'],
+                'paid_at' => now(),
+            ]);
+            $this->processSuccessfulPayment($payment);
+        } elseif (in_array($status, ['failed', 'canceled', 'expired'])) {
+            $payment->update([
+                'status' => 'failed',
+                'chargily_response' => $webhookData['data'],
+            ]);
+            $this->processFailedPayment($payment);
+        }
+
+        return response()->json(['message' => 'Webhook processed']);
+    }
+
+    /**
+     * Legacy SlickPay callback handler (kept for compatibility)
      */
     public function callback(Request $request)
     {
-        Log::info('SlickPay Callback Received', [
+        Log::info('Payment Callback Received', [
             'query' => $request->query(),
             'body' => $request->all(),
         ]);
@@ -288,21 +318,21 @@ class PaymentController extends Controller
         $paymentId = $request->query('payment_id');
 
         if (!$paymentId) {
-            Log::error('SlickPay Callback: No payment_id provided');
+            Log::error('Payment Callback: No payment_id provided');
             return response()->json(['message' => 'Payment ID required'], 400);
         }
 
         $payment = Payment::find($paymentId);
 
         if (!$payment) {
-            Log::error('SlickPay Callback: Payment not found', ['payment_id' => $paymentId]);
+            Log::error('Payment Callback: Payment not found', ['payment_id' => $paymentId]);
             return response()->json(['message' => 'Payment not found'], 404);
         }
 
-        // Verify payment status with SlickPay
-        $verificationResult = $this->slickPayService->verifyPayment($payment);
+        // Verify payment status with Chargily
+        $verificationResult = $this->chargilyService->verifyPayment($payment);
 
-        Log::info('SlickPay Payment Verification Result', [
+        Log::info('Payment Verification Result', [
             'payment_id' => $paymentId,
             'result' => $verificationResult,
         ]);
@@ -363,9 +393,9 @@ class PaymentController extends Controller
     {
         $payment = Payment::findOrFail($paymentId);
 
-        // Verify with SlickPay if still pending
-        if ($payment->isPending() && $payment->slickpay_invoice_id) {
-            $verificationResult = $this->slickPayService->verifyPayment($payment);
+        // Verify with Chargily if still pending
+        if ($payment->isPending() && $payment->chargily_checkout_id) {
+            $verificationResult = $this->chargilyService->verifyPayment($payment);
 
             if ($verificationResult['completed']) {
                 $this->processSuccessfulPayment($payment);

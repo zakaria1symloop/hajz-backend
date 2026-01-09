@@ -188,6 +188,12 @@ class SlickPayService
             ],
         ];
 
+        // Add account/RIB if configured (otherwise SlickPay uses account default)
+        $account = $params['account'] ?? config('slickpay.merchant_account');
+        if (!empty($account)) {
+            $data['account'] = $account;
+        }
+
         return $this->request('POST', 'users/invoices', $data);
     }
 

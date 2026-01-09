@@ -99,8 +99,9 @@ Route::get('/wilayas/popular', [AdminWilayaController::class, 'popular']);
 // Webhook (no auth required)
 Route::post('/webhook/chargily', [WebhookController::class, 'handleChargily']);
 
-// SlickPay payment callback (no auth required)
+// Payment callbacks (no auth required)
 Route::any('/payments/callback', [PaymentController::class, 'callback']);
+Route::post('/payments/chargily-webhook', [PaymentController::class, 'chargilyWebhook']);
 
 // Public guest booking route
 Route::post('/reservations/guest', [ReservationController::class, 'guestStore']);

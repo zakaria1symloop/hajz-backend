@@ -45,6 +45,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Merchant Account (RIB)
+    |--------------------------------------------------------------------------
+    |
+    | The merchant's bank account (RIB) for receiving payments.
+    | This is required for invoice creation in production mode.
+    |
+    */
+    'merchant_account' => env('SLICKPAY_MERCHANT_ACCOUNT', ''),
+
+    /*
+    |--------------------------------------------------------------------------
     | Frontend URLs
     |--------------------------------------------------------------------------
     |

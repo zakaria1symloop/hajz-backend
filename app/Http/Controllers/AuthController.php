@@ -188,9 +188,10 @@ class AuthController extends Controller
                 'code' => 'required|string',
             ]);
 
+            // Get user from Google using the authorization code
             $googleUser = Socialite::driver('google')
                 ->stateless()
-                ->user();
+                ->userFromToken($this->getGoogleAccessToken($request->code));
 
             // Find or create user
             $user = User::where('email', $googleUser->getEmail())->first();
@@ -228,5 +229,25 @@ class AuthController extends Controller
                 'error' => $e->getMessage(),
             ], 400);
         }
+    }
+
+    /**
+     * Exchange Google authorization code for access token
+     */
+    protected function getGoogleAccessToken(string $code): string
+    {
+        $response = \Http::post('https://oauth2.googleapis.com/token', [
+            'client_id' => config('services.google.client_id'),
+            'client_secret' => config('services.google.client_secret'),
+            'redirect_uri' => config('services.google.redirect'),
+            'grant_type' => 'authorization_code',
+            'code' => $code,
+        ]);
+
+        if (!$response->successful()) {
+            throw new \Exception('Failed to get access token from Google');
+        }
+
+        return $response->json('access_token');
     }
 }
