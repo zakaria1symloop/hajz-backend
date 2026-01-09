@@ -528,16 +528,7 @@ class PaymentController extends Controller
      */
     protected function getSuccessUrl(Payment $payment, string $frontendUrl): string
     {
-        if ($payment->payable_type === Reservation::class || $payment->reservation_id) {
-            $reservationId = $payment->reservation_id ?? $payment->payable_id;
-            return "{$frontendUrl}/reservations/{$reservationId}/success";
-        } elseif ($payment->payable_type === TableReservation::class) {
-            return "{$frontendUrl}/table-reservations/{$payment->payable_id}/success";
-        } elseif ($payment->payable_type === CarBooking::class) {
-            return "{$frontendUrl}/car-bookings/{$payment->payable_id}/success";
-        }
-
-        return "{$frontendUrl}/payment/success?payment_id={$payment->id}";
+        return "{$frontendUrl}/booking/success?payment_id={$payment->id}";
     }
 
     /**
@@ -545,15 +536,6 @@ class PaymentController extends Controller
      */
     protected function getFailureUrl(Payment $payment, string $frontendUrl): string
     {
-        if ($payment->payable_type === Reservation::class || $payment->reservation_id) {
-            $reservationId = $payment->reservation_id ?? $payment->payable_id;
-            return "{$frontendUrl}/reservations/{$reservationId}/failure";
-        } elseif ($payment->payable_type === TableReservation::class) {
-            return "{$frontendUrl}/table-reservations/{$payment->payable_id}/failure";
-        } elseif ($payment->payable_type === CarBooking::class) {
-            return "{$frontendUrl}/car-bookings/{$payment->payable_id}/failure";
-        }
-
-        return "{$frontendUrl}/payment/failed?payment_id={$payment->id}";
+        return "{$frontendUrl}/booking/failure?payment_id={$payment->id}";
     }
 }
