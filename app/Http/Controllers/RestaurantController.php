@@ -5,17 +5,17 @@ namespace App\Http\Controllers;
 use App\Models\Restaurant;
 use App\Models\TableReservation;
 use App\Models\Payment;
-use App\Services\SlickPayService;
+use App\Services\ChargilyService;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
 class RestaurantController extends Controller
 {
-    protected SlickPayService $slickPayService;
+    protected ChargilyService $chargilyService;
 
-    public function __construct(SlickPayService $slickPayService)
+    public function __construct(ChargilyService $chargilyService)
     {
-        $this->slickPayService = $slickPayService;
+        $this->chargilyService = $chargilyService;
     }
     public function index(Request $request)
     {
@@ -438,14 +438,14 @@ class RestaurantController extends Controller
             'amount' => $totalAmount,
             'currency' => 'DZD',
             'status' => 'pending',
-            'payment_method' => 'slickpay',
+            'payment_method' => 'chargily',
             'description' => "Restaurant Reservation #{$reservation->id}",
         ]);
 
         // Update reservation with payment ID
         $reservation->update(['payment_id' => $payment->id]);
 
-        // Initiate SlickPay payment
+        // Initiate Chargily payment
         $paymentItems = [
             [
                 'name' => "Table: {$availableTable->name} ({$durationHours}h)",
@@ -472,7 +472,7 @@ class RestaurantController extends Controller
             'items' => $paymentItems,
         ];
 
-        $result = $this->slickPayService->initiatePayment($paymentData);
+        $result = $this->chargilyService->initiatePayment($paymentData);
 
         if (!$result['success']) {
             // If payment initiation fails, delete the reservation and payment
@@ -486,10 +486,10 @@ class RestaurantController extends Controller
             ], 400);
         }
 
-        // Update payment with SlickPay invoice ID
+        // Update payment with Chargily checkout ID
         $payment->update([
-            'slickpay_invoice_id' => $result['invoice_id'],
-            'slickpay_response' => $result['data'],
+            'chargily_checkout_id' => $result['checkout_id'],
+            'chargily_response' => $result['data'],
         ]);
 
         return response()->json([
