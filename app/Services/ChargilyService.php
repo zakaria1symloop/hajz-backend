@@ -46,7 +46,7 @@ class ChargilyService
         ]);
 
         try {
-            $http = Http::withHeaders([
+            $http = Http::withoutVerifying()->withHeaders([
                 'Authorization' => 'Bearer ' . $this->secretKey,
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
