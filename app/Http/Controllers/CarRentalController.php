@@ -20,10 +20,12 @@ class CarRentalController extends Controller
     }
     public function index(Request $request)
     {
-        // Show all companies (active and inactive) - frontend will display badge for inactive ones
+        // Only show verified and active car rental companies to users
         $query = CarRentalCompany::with(['wilaya', 'images', 'cars' => function ($q) {
             $q->where('is_available', true)->with('images');
-        }]);
+        }])
+            ->where('verification_status', 'verified')
+            ->where('is_active', true);
 
         // Filter by wilaya
         if ($request->has('wilaya_id') || $request->has('wilaya')) {
@@ -95,6 +97,11 @@ class CarRentalController extends Controller
 
     public function show(CarRentalCompany $carRental)
     {
+        // Only show verified and active companies
+        if ($carRental->verification_status !== 'verified' || !$carRental->is_active) {
+            return response()->json(['message' => 'Car rental company not found'], 404);
+        }
+
         $carRental->load(['wilaya', 'cars.images']);
 
         return response()->json($carRental);
@@ -103,6 +110,7 @@ class CarRentalController extends Controller
     public function featured()
     {
         $companies = CarRentalCompany::with(['wilaya', 'images'])
+            ->where('verification_status', 'verified')
             ->where('is_active', true)
             ->withCount('cars')
             ->having('cars_count', '>', 0)

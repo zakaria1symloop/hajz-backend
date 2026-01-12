@@ -8,6 +8,8 @@ use App\Models\RestaurantWallet;
 use App\Models\CompanyWallet;
 use App\Models\WalletTransaction;
 use App\Models\WithdrawalRequest;
+use App\Models\Payment;
+use App\Models\AdminSetting;
 use Illuminate\Http\Request;
 
 class WalletController extends Controller
@@ -64,11 +66,27 @@ class WalletController extends Controller
         }
 
         // Calculate totals
+        $totalEarnedByProfessionals = HotelWallet::sum('total_earned') + RestaurantWallet::sum('total_earned') + CompanyWallet::sum('total_earned');
+
+        // Calculate total payments received (before commission)
+        $totalPayments = Payment::where('status', 'completed')->sum('amount');
+
+        // Commission earned by platform = Total payments - What professionals earned
+        $commissionRate = (float) AdminSetting::get('commission_rate', 10);
+        $totalCommissions = $totalPayments - $totalEarnedByProfessionals;
+
+        // Amount to pay to professionals = Available balance + Pending balance
+        $amountToPay = HotelWallet::sum('available_balance') + RestaurantWallet::sum('available_balance') + CompanyWallet::sum('available_balance');
+
         $totals = [
             'total_pending' => HotelWallet::sum('pending_balance') + RestaurantWallet::sum('pending_balance') + CompanyWallet::sum('pending_balance'),
-            'total_available' => HotelWallet::sum('available_balance') + RestaurantWallet::sum('available_balance') + CompanyWallet::sum('available_balance'),
-            'total_earned' => HotelWallet::sum('total_earned') + RestaurantWallet::sum('total_earned') + CompanyWallet::sum('total_earned'),
+            'total_available' => $amountToPay,
+            'total_earned' => $totalEarnedByProfessionals,
             'total_withdrawn' => HotelWallet::sum('total_withdrawn') + RestaurantWallet::sum('total_withdrawn') + CompanyWallet::sum('total_withdrawn'),
+            'total_payments' => $totalPayments,
+            'total_commissions' => $totalCommissions,
+            'commission_rate' => $commissionRate,
+            'amount_to_pay' => $amountToPay,
         ];
 
         return response()->json([

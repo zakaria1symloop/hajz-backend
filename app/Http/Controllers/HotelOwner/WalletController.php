@@ -4,6 +4,7 @@ namespace App\Http\Controllers\HotelOwner;
 
 use App\Http\Controllers\Controller;
 use App\Models\WithdrawalRequest;
+use App\Models\AdminSetting;
 use App\Services\WalletService;
 use Illuminate\Http\Request;
 
@@ -29,6 +30,7 @@ class WalletController extends Controller
         return response()->json([
             'wallet' => $wallet,
             'stats' => $stats,
+            'commission_rate' => (float) AdminSetting::get('commission_rate', 10),
         ]);
     }
 

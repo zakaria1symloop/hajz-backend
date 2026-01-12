@@ -4,6 +4,7 @@ namespace App\Http\Controllers\CompanyOwner;
 
 use App\Http\Controllers\Controller;
 use App\Models\WithdrawalRequest;
+use App\Models\AdminSetting;
 use Illuminate\Http\Request;
 
 class WalletController extends Controller
@@ -28,7 +29,7 @@ class WalletController extends Controller
                 'total_earned' => $wallet->total_earned,
                 'total_withdrawn' => $wallet->total_withdrawn,
             ],
-            'commission_rate' => config('app.commission_rate', 10),
+            'commission_rate' => (float) AdminSetting::get('commission_rate', 10),
         ]);
     }
 

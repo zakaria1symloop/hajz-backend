@@ -19,8 +19,10 @@ class RestaurantController extends Controller
     }
     public function index(Request $request)
     {
-        // Show all restaurants (active and inactive) - frontend will display badge for inactive ones
-        $query = Restaurant::with(['images', 'wilaya']);
+        // Only show verified and active restaurants to users
+        $query = Restaurant::with(['images', 'wilaya'])
+            ->where('verification_status', 'verified')
+            ->where('is_active', true);
 
         // Filter by wilaya
         if ($request->has('wilaya_id') || $request->has('wilaya')) {
@@ -94,6 +96,11 @@ class RestaurantController extends Controller
 
     public function show(Restaurant $restaurant)
     {
+        // Only show verified and active restaurants
+        if ($restaurant->verification_status !== 'verified' || !$restaurant->is_active) {
+            return response()->json(['message' => 'Restaurant not found'], 404);
+        }
+
         $restaurant->load(['images', 'plats' => function ($query) {
             $query->where('is_available', true)->with('images')->orderBy('category');
         }, 'tables' => function ($query) {
@@ -113,6 +120,7 @@ class RestaurantController extends Controller
     public function featured()
     {
         $restaurants = Restaurant::with(['images', 'wilaya'])
+            ->where('verification_status', 'verified')
             ->where('is_active', true)
             ->orderBy('rating', 'desc')
             ->limit(6)
@@ -130,7 +138,8 @@ class RestaurantController extends Controller
 
     public function cuisineTypes()
     {
-        $types = Restaurant::where('is_active', true)
+        $types = Restaurant::where('verification_status', 'verified')
+            ->where('is_active', true)
             ->distinct()
             ->pluck('cuisine_type');
 

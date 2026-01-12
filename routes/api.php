@@ -41,6 +41,8 @@ use App\Http\Controllers\Admin\AdminBookingsController;
 use App\Http\Controllers\Admin\AdminAdminsController;
 use App\Http\Controllers\UserBookingsController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\ContactMessageController;
+use App\Http\Controllers\Admin\ContactMessageController as AdminContactMessageController;
 
 // Auth routes
 Route::post('/register', [AuthController::class, 'register']);
@@ -51,6 +53,9 @@ Route::get('/auth/google', [AuthController::class, 'googleRedirect']);
 Route::post('/auth/google/callback', [AuthController::class, 'googleCallback']);
 
 // Public routes
+Route::get('/settings/public', [AdminSettingsController::class, 'publicSettings']);
+Route::get('/settings/legal', [AdminSettingsController::class, 'getPublicLegalContent']);
+Route::post('/contact', [ContactMessageController::class, 'store']);
 Route::get('/hotels', [HotelController::class, 'index']);
 Route::get('/hotels/featured', [HotelController::class, 'featured']);
 Route::get('/hotels/search', [HotelController::class, 'search']);
@@ -423,6 +428,10 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function ()
     Route::get('/settings', [AdminSettingsController::class, 'index']);
     Route::put('/settings', [AdminSettingsController::class, 'update']);
 
+    // Legal Pages (Privacy Policy & Terms of Use)
+    Route::get('/legal', [AdminSettingsController::class, 'getLegalContent']);
+    Route::put('/legal', [AdminSettingsController::class, 'updateLegalContent']);
+
     // Wilayas
     Route::get('/wilayas', [AdminWilayaController::class, 'index']);
     Route::post('/wilayas', [AdminWilayaController::class, 'store']);
@@ -431,4 +440,11 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function ()
     Route::delete('/wilayas/{wilaya}', [AdminWilayaController::class, 'destroy']);
     Route::post('/wilayas/{wilaya}/image', [AdminWilayaController::class, 'uploadImage']);
     Route::delete('/wilayas/{wilaya}/image', [AdminWilayaController::class, 'deleteImage']);
+
+    // Contact Messages
+    Route::get('/contact-messages', [AdminContactMessageController::class, 'index']);
+    Route::get('/contact-messages/{contactMessage}', [AdminContactMessageController::class, 'show']);
+    Route::post('/contact-messages/{contactMessage}/read', [AdminContactMessageController::class, 'markAsRead']);
+    Route::post('/contact-messages/{contactMessage}/unread', [AdminContactMessageController::class, 'markAsUnread']);
+    Route::delete('/contact-messages/{contactMessage}', [AdminContactMessageController::class, 'destroy']);
 });
