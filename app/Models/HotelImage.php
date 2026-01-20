@@ -17,6 +17,8 @@ class HotelImage extends Model
         'sort_order',
     ];
 
+    protected $appends = ['image_url'];
+
     protected function casts(): array
     {
         return [
@@ -27,5 +29,10 @@ class HotelImage extends Model
     public function hotel(): BelongsTo
     {
         return $this->belongsTo(Hotel::class);
+    }
+
+    public function getImageUrlAttribute(): string
+    {
+        return asset('storage/' . $this->image_path);
     }
 }
