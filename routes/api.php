@@ -448,3 +448,16 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function ()
     Route::post('/contact-messages/{contactMessage}/unread', [AdminContactMessageController::class, 'markAsUnread']);
     Route::delete('/contact-messages/{contactMessage}', [AdminContactMessageController::class, 'destroy']);
 });
+
+// Test email route (remove after testing)
+Route::get('/test-email', function() {
+    try {
+        \Mail::raw('Test email from Hajz Algeria. SMTP is configured correctly!', function($message) {
+            $message->to('hajzcontact@gmail.com')
+                    ->subject('Hajz - SMTP Test Email');
+        });
+        return response()->json(['message' => 'Test email sent successfully']);
+    } catch (Exception $e) {
+        return response()->json(['error' => $e->getMessage()], 500);
+    }
+});

@@ -7,7 +7,10 @@ use App\Models\Reservation;
 use App\Services\ChargilyPayService;
 use App\Services\WalletService;
 use App\Services\RoomAvailabilityService;
+use App\Notifications\HotelBookingConfirmation;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Log;
 
 class WebhookController extends Controller
 {
@@ -59,7 +62,7 @@ class WebhookController extends Controller
 
                 // Process hotel wallet credit (if this is a hotel reservation with a room)
                 $reservation = $payment->reservation;
-                if ($reservation->reservable_type === 'App\\Models\\Hotel' && $reservation->room_id) {
+                if ($reservation->reservable_type === 'App\Models\Hotel' && $reservation->room_id) {
                     // Credit hotel wallet with payment (minus commission)
                     $this->walletService->processPayment($payment);
 
@@ -68,6 +71,9 @@ class WebhookController extends Controller
                     if ($room) {
                         $this->roomAvailabilityService->blockDatesForReservation($room, $reservation);
                     }
+
+                    // Send confirmation email to guest
+                    $this->sendBookingConfirmationEmail($reservation);
                 }
                 break;
 
@@ -84,5 +90,35 @@ class WebhookController extends Controller
         }
 
         return response()->json(['success' => true]);
+    }
+
+    protected function sendBookingConfirmationEmail($reservation)
+    {
+        try {
+            // Load necessary relationships
+            $reservation->load(['room.hotel']);
+
+            // Get guest email
+            $email = $reservation->guest_email ?? $reservation->user->email ?? null;
+
+            if (!$email) {
+                Log::warning('No email found for reservation', ['reservation_id' => $reservation->id]);
+                return;
+            }
+
+            // Send notification
+            Notification::route('mail', $email)
+                ->notify(new HotelBookingConfirmation($reservation));
+
+            Log::info('Booking confirmation email sent', [
+                'reservation_id' => $reservation->id,
+                'email' => $email
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to send booking confirmation email', [
+                'reservation_id' => $reservation->id,
+                'error' => $e->getMessage()
+            ]);
+        }
     }
 }
