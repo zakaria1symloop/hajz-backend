@@ -121,7 +121,8 @@ class WebhookController extends Controller
             $booking = $payment->payable;
             $booking->update([
                 'status' => 'confirmed',
-                'payment_status' => 'paid',
+                'payment_status' => 'fully_paid',
+                'confirmed_at' => now(),
             ]);
 
             // Send email
@@ -151,7 +152,8 @@ class WebhookController extends Controller
         if ($payableType === 'App\\Models\\CarBooking' && $payment->payable) {
             $payment->payable->update([
                 'status' => 'cancelled',
-                'payment_status' => 'failed',
+                'payment_status' => 'pending',
+                'cancelled_at' => now(),
             ]);
         }
     }
